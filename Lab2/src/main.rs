@@ -3,22 +3,27 @@ mod line;
 mod color;
 mod bmp;
 mod polygon;
+mod patterns;
+mod life;
 use crate::framebuffer::FrameBuffer;
 use crate::line::Line;
 use crate::color::Color;
 use crate::polygon::{Polygon, get_max_limits};
+use crate::life::Life;
 use minifb::{Window, WindowOptions, Key};
 use std::time::Duration;
 fn main() {
-  let window_width = 800;
-  let window_height = 600;
+  let window_width = 1000;
+  let window_height = 1000;
 
-  let framebuffer_width = 80;
-  let framebuffer_height = 60;
+  let framebuffer_width = 100;
+  let framebuffer_height = 100;
 
-  let frame_delay = Duration::from_millis(120);
+  let frame_delay = Duration::from_millis(16);
 
   let mut framebuffer = framebuffer::FrameBuffer::new(framebuffer_width, framebuffer_height);
+  framebuffer.set_current_color(Color::new(255,0,0));
+  framebuffer.randomize_patterns();
 
   let mut window = Window::new(
       "Rust Graphics - Render Loop Example",
@@ -43,36 +48,15 @@ fn main() {
           framebuffer.write_to_bmp("screenshot.bmp").unwrap();
       }
 
-      // Prepare variables for rendering
-      if x as usize >= framebuffer_width - 1 || x == 0 {
-          speed = -speed;
-      }
-      if y as usize >= framebuffer_height - 1 || y == 0 {
-          y_speed = -y_speed;
-      }
-
-      x += speed;
-      y += y_speed;
-
-      // Ensure x and y are within bounds
-      let clamped_x = x.clamp(0, (framebuffer_width - 1) as i32) as usize;
-      let clamped_y = y.clamp(0, (framebuffer_height - 1) as i32) as usize;
-
-      // Clear the framebuffer
-      framebuffer.set_background_color(Color::new(0, 0, 0));
-      framebuffer.clear();
-
-      // Draw some points
-      framebuffer.set_current_color(Color::new(255, 255, 0));
-      framebuffer.point(clamped_x, clamped_y);
-
-      let casted_fb = framebuffer.cast_buffer();
+      framebuffer.life();
 
       // Update the window with the framebuffer contents
       window
-          .update_with_buffer(&casted_fb, framebuffer_width, framebuffer_height)
+          .update_with_buffer(&framebuffer.cast_buffer(), framebuffer_width, framebuffer_height)
           .unwrap();
 
       std::thread::sleep(frame_delay);
   }
+  
+  framebuffer.write_to_bmp("out.bmp");
 }
